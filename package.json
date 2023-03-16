@@ -20,6 +20,7 @@
     "test:chrome": "cypress run --browser chrome"
   },
   "dependencies": {
+    "mathjs": "^11.6.0",
     "networked-aframe": "^0.8.0",
     "papaparse": "^5.3.1"
   },
@@ -57,7 +58,7 @@
     "three": ">=0.118.3",
     "three-forcegraph": "^1.39.1",
     "url-loader": "^4.1.1",
-    "webpack": "^4.42.1",
+    "webpack": "^4.46.0",
     "webpack-cli": "^3.0.8",
     "webpack-dev-server": "^3.10.3",
     "webpack-merge": "^4.1.3"
