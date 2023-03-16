@@ -118,7 +118,7 @@ AFRAME.registerComponent('babia-bubbles-plot', {
             //generate random default transform matrix
             let aux = [[],[],[]];
             for(let i = 0; i < aux.length; i++){
-                for(let j = 0; j < matrix[0].length; j++){
+                for(let j = 0; j < matrix.length; j++){
                     aux[i].push(Math.floor(Math.random()*5));
                 }
                 
@@ -126,6 +126,7 @@ AFRAME.registerComponent('babia-bubbles-plot', {
             tMatrix = aux;
         }
         else{
+
             tMatrix = JSON.parse(tMatrix);
         }
 
