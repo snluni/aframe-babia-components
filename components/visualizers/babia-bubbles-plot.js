@@ -6,6 +6,29 @@ const NotiBuffer = require("../../common/noti-buffer").NotiBuffer;
 const math = require("mathjs");
 
 
+function drawVectors(tMatrix, el){
+    let geometry;
+    let material;
+    let cylinder;
+    let norm;
+    let angleXZ;
+    let angleXY;
+
+    for(let i=0; i < tMatrix[0].length; i++){
+        //draw cylinder
+        norm = math.norm([tMatrix[0][i], tMatrix[1][i],tMatrix[2][i]]);
+        geometry = new THREE.CylinderGeometry( 0.1, 0.1, norm, 3, 1);
+        material = new THREE.MeshBasicMaterial( {color: 0xffff00});
+        cylinder = new THREE.Mesh(geometry, material);
+        angleXY = math.atan(tMatrix[0][i]/tMatrix[1][i]);
+        angleXZ = math.atan(tMatrix[0][i]/tMatrix[2][i]);
+        cylinder.rotation.y = angleXZ;
+        cylinder.rotation.z = angleXY;
+
+        el.setObject3D('vector ' + (i+1), cylinder);
+    }
+}
+
 /* global AFRAME */
 if (typeof AFRAME === 'undefined') {
     throw new Error('Component attempted to register before AFRAME was available.');
@@ -151,7 +174,7 @@ AFRAME.registerComponent('babia-bubbles-plot', {
             dataToPrint.push({x: result[0][i], y: result[1][i], z: result[2][i]});
         }
 
-        console.log('dataToPrint: ', dataToPrint);
+        drawVectors(tMatrix, el);
 
         const animation = data.animation
         const palette = data.palette
