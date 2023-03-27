@@ -7,25 +7,88 @@ const math = require("mathjs");
 
 
 function drawVectors(tMatrix, el){
+    //origin = {x:0,y:0,z:0}
     let geometry;
     let material;
     let cylinder;
     let norm;
     let angleXZ;
     let angleXY;
+    let posX;
 
-    for(let i=0; i < tMatrix[0].length; i++){
+    let geometryBox;
+    let materialBox;
+    let box;
+
+    let k = tMatrix[0].length
+    for(let i=0; i < k; i++){
         //draw cylinder
         norm = math.norm([tMatrix[0][i], tMatrix[1][i],tMatrix[2][i]]);
         geometry = new THREE.CylinderGeometry( 0.1, 0.1, norm, 3, 1);
         material = new THREE.MeshBasicMaterial( {color: 0xffff00});
         cylinder = new THREE.Mesh(geometry, material);
-        angleXY = math.atan(tMatrix[0][i]/tMatrix[1][i]);
-        angleXZ = math.atan(tMatrix[0][i]/tMatrix[2][i]);
-        cylinder.rotation.y = angleXZ;
+        angleXY = (Math.atan(tMatrix[0][i]/tMatrix[1][i])); //hacer módulo con 2PI
+        angleXZ = (Math.atan(tMatrix[0][i]/tMatrix[2][i]));
+
+        
+        //posX = cylinder.position.x;
+        //console.log('posX',posX);
+
+        //rotate axis
+        //angleXY = 0.925025;
+        angleXY = angleXY - Math.PI/2;
+        
+        //angleXZ = Math.PI/4;
+        //angleXZ = angleXZ - Math.PI;
+
+
+        //rotate
         cylinder.rotation.z = angleXY;
+        //cylinder.rotation.y = angleXZ;
+
+        let degreeXY = angleXY * (180/Math.PI) + 90;
+        let degreeXZ = angleXZ * (180/Math.PI);
+        console.log('degreeXY ', degreeXY);
+        console.log('degreeXZ ', degreeXZ);
+
+        
+        //translate
+        cylinder.position.x = cylinder.position.x + (Math.sin(-angleXY)*norm/2);
+        console.log(cylinder.position.x);
+        cylinder.position.y = cylinder.position.y + (Math.cos(-angleXY)*norm/2);
+        //cylinder.position.z = cylinder.position.z + (Math.cos(-angleXZ)*norm/2);
+
+        /*let d = Math.abs(cylinder.position.x) - Math.abs((Math.cos(-angleXZ)*norm/2)) - Math.abs(posX);
+
+        if(cylinder.position.x > 0){
+            cylinder.position.x = cylinder.position.x - d;
+        }
+        else if(cylinder.position.x < 0){
+            cylinder.position.x = cylinder.position.x + d;
+        }*/
+        
+        
 
         el.setObject3D('vector ' + (i+1), cylinder);
+
+        
+        
+        
+
+        //draw box
+        geometryBox = new THREE.BoxGeometry(1,1,1);
+        materialBox = new THREE.MeshBasicMaterial({color: 0xffffff});
+        box = new THREE.Mesh(geometryBox, materialBox);
+
+        box.position.x = box.position.x - Math.sin(angleXY)*norm/2 + cylinder.position.x;
+        box.position.y = box.position.y + Math.cos(angleXY)*norm/2 + cylinder.position.y;
+        //box.position.z = box.position.z + Math.sin(angleXZ)*norm/2;
+        //box.position.x = box.position.x + Math.cos(angleXZ)*norm/2;
+
+        
+        box.scale.set(0.5, 0.5, 0.5);
+        el.setObject3D('box ' + (i+1), box);
+
     }
 }
 
@@ -62,7 +125,9 @@ AFRAME.registerComponent('babia-bubbles-plot', {
         scale: { type: 'number' },
         heightMax: { type: 'number' },
         radiusMax: { type: 'number' },
-        transform_matrix: {type: 'string'}
+        transform_matrix: {type: 'string'},
+        form: {type: 'string'},
+        size: {type: 'number'}
     },
         
     /**
@@ -142,7 +207,7 @@ AFRAME.registerComponent('babia-bubbles-plot', {
             let aux = [[],[],[]];
             for(let i = 0; i < aux.length; i++){
                 for(let j = 0; j < matrix.length; j++){
-                    aux[i].push(Math.floor(Math.random()*5));
+                    aux[i].push(Math.floor(Math.random()*11));
                 }
                 
             }
@@ -280,7 +345,7 @@ AFRAME.registerComponent('babia-bubbles-plot', {
                 maxZ = stepZ
             }
     
-            let bubbleEntity = generateBubble(height, radius, colorId, palette, stepX, stepZ, animation, scale, proportion, radius_scale);
+            let bubbleEntity = generateBubble(height, radius, colorId, palette, stepX, stepZ, animation, scale, proportion, radius_scale, data.form, data.size);
             bubbleEntity.classList.add("babiaxraycasterclass")
             this.chartEl.appendChild(bubbleEntity);
             
@@ -342,12 +407,13 @@ AFRAME.registerComponent('babia-bubbles-plot', {
 })
 
 
-function generateBubble(height, radius, colorId, palette, positionX, positionZ, animation, scale, proportion, radius_scale) {
+function generateBubble(height, radius, colorId, palette, positionX, positionZ, animation, scale, proportion, radius_scale, form, size) {
     let color = colors.get(colorId, palette)
     console.log("Generating bubble...")
     if (scale) {
         height = height / scale
         radius = radius / scale
+        size = size / scale
     } else if (proportion || radius_scale) {
         if (proportion) {
             height = proportion * height
@@ -356,9 +422,34 @@ function generateBubble(height, radius, colorId, palette, positionX, positionZ, 
             radius = radius_scale * radius
         }
     }
-    let entity = document.createElement('a-sphere');
+    let entity;
+    switch(form){
+        case 'box':
+            entity = document.createElement('a-box');
+            break;
+        case 'cylinder':
+            entity = document.createElement('a-cylinder');
+            break;
+        case 'sphere':
+            entity = document.createElement('a-sphere');
+            break;
+        default:
+            document.createElement('a-sphere');
+    }
     entity.setAttribute('color', color);
     entity.setAttribute('radius', radius);
+
+    //change entity size
+    if(size){
+        entity.setAttribute('width', size);
+        entity.setAttribute('height', size);
+        entity.setAttribute('depth', size);
+    }
+    else{
+        entity.setAttribute('width', 1);
+        entity.setAttribute('height', 1);
+        entity.setAttribute('depth', 1);
+    }
     // Add Animation
     if (animation) {
         let from = positionX.toString() + " " + radius.toString() + " " + positionZ.toString()
