@@ -5,6 +5,9 @@ let updateFunction = require('../others/common').updateFunction;
 const NotiBuffer = require("../../common/noti-buffer").NotiBuffer;
 const math = require("mathjs");
 
+//save vectors 
+let boxes = [];
+let vectors = [];
 
 function drawVectors(tMatrix, el){
     //origin = {x:0,y:0,z:0}
@@ -19,6 +22,7 @@ function drawVectors(tMatrix, el){
     let geometryBox;
     let materialBox;
     let box;
+    let entity;
 
     let k = tMatrix[0].length
     for(let i=0; i < k; i++){
@@ -67,18 +71,21 @@ function drawVectors(tMatrix, el){
             cylinder.position.x = cylinder.position.x + d;
         }*/
         
+
+        //create entity for vector  
+        entity = document.createElement('a-entity');
+        entity.setObject3D('vector ' + (i+1), cylinder);
+        entity.setAttribute('id', 'vector' + (i + 1));
+        el.appendChild(entity);
         
 
-        el.setObject3D('vector ' + (i+1), cylinder);
-
-        
-        
-        
 
         //draw box
-        geometryBox = new THREE.BoxGeometry(1,1,1);
-        materialBox = new THREE.MeshBasicMaterial({color: 0xffffff});
-        box = new THREE.Mesh(geometryBox, materialBox);
+
+        //create entity for box
+        entity = document.createElement('a-box');
+        box= entity.object3D;
+
 
         box.position.x = box.position.x - Math.sin(angleXY)*norm/2 + cylinder.position.x;
         box.position.y = box.position.y + Math.cos(angleXY)*norm/2 + cylinder.position.y;
@@ -87,8 +94,15 @@ function drawVectors(tMatrix, el){
 
         
         box.scale.set(0.5, 0.5, 0.5);
-        el.setObject3D('box ' + (i+1), box);
-
+        
+        
+        
+        entity.setAttribute('id', 'box' + (i + 1));
+        //boxes belong to collidable class
+        entity.setAttribute('class', 'collidable');
+        entity.setAttribute('grabbable', '');
+        el.appendChild(entity);
+        console.log(entity);
     }
 }
 

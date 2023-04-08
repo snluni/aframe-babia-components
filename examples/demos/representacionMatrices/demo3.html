@@ -6,6 +6,7 @@
     <script
         src="https://unpkg.com/aframe-environment-component@1.0.0/dist/aframe-environment-component.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v6.1.0/dist/aframe-extras.min.js"></script>
+    <script src="https://unpkg.com/super-hands@^3.0.3/dist/super-hands.min.js"></script>
     <script src="/../../aframe-babia-components/dist/aframe-babia-components.js"></script>
     <script>
         AFRAME.registerComponent('change-matrix', {
@@ -55,7 +56,16 @@
         <a-entity movement-controls="fly: true" position="0 5 20">
             <a-entity camera position="0 0 0" look-controls></a-entity>
             <a-entity cursor="rayOrigin:mouse"></a-entity>
-            <a-entity laser-controls="hand: right"></a-entity>
+        </a-entity>
+
+        <!-- hands -->
+
+        <a-entity id="rightHand" hand-controls="hand: right; handModelStyle: lowPoly; color: #ffcccc"
+            sphere-collider="objects: .collidable" super-hands>
+        </a-entity>
+
+        <a-entity id="leftHand" hand-controls="hand: left; handModelStyle: lowPoly; color: #ffcccc"
+            sphere-collider="objects: .collidable" super-hands>
         </a-entity>
 
         <a-entity id="data" babia-queryjson="url: ./data.json">
@@ -75,8 +85,7 @@
         <a-entity id="change-tmatrix-button" geometry="primitive: box; width: 2; height: 2; depth: 2"
             material="color: white" position="0 1 6" change-matrix>
         </a-entity>
-
-    </a-scene>
+    
 </body>
 
 </html>
