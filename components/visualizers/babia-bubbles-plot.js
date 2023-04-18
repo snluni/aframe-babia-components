@@ -17,11 +17,6 @@ function boxColliderEventHandler(matrix, entity){
     console.log('índice box', index);
     //new position of the box
     let position = entity.object3D.position;
-    
-    console.log('ángulo', position.angleTo((new THREE.Vector3(5,0,0)))*180/Math.PI);
-    //get the current angle of the vector
-    let oldAngleXY = (Math.atan(matrix[0][index]/matrix[1][index]));
-    oldAngleXY = oldAngleXY - Math.PI/2;
 
     //modificate transformation matrix
     matrix[0][index] = position.x;
@@ -36,11 +31,6 @@ function boxColliderEventHandler(matrix, entity){
     console.log('indice de la matrix', matrix[0][index]);
     console.log('indice de la matrix', matrix[1][index]);
     console.log('indice de la matrix', matrix[2][index]);
-
-    console.log('oldAngleXY', oldAngleXY * (180/Math.PI) + 90);
-    //return middle point of the vector to the origin
-    //vector.position.x = vector.position.x - Math.cos(oldAngleXY)*vector.geometry.parameters.height/2;
-    //vector.position.y = vector.position.y + Math.sin(oldAngleXY)*vector.geometry.parameters.height/2;
 
     vector.position.x = 0;
     vector.position.y = 0;
@@ -72,8 +62,6 @@ function boxColliderEventHandler(matrix, entity){
         newAngleXY = (Math.PI/2 - newAngleXY + Math.PI) -Math.PI/2;
     }
 
-    console.log('newAngleXY', newAngleXY * (180/Math.PI))
-
     console.log('newAngleXY', newAngleXY * (180/Math.PI) + 90)
     vector.geometry = new THREE.CylinderGeometry( 0.1, 0.1, newNorm, 3, 1);
     vector.rotation.z = newAngleXY;
@@ -86,15 +74,11 @@ function drawVectors(tMatrix, el){
     //origin = {x:0,y:0,z:0}
     let geometry;
     let material;
+    let box;
     let cylinder;
     let norm;
     let angleXZ;
     let angleXY;
-    let posX;
-
-    let geometryBox;
-    let materialBox;
-    let box;
     let entity;
 
     let k = tMatrix[0].length
@@ -104,10 +88,9 @@ function drawVectors(tMatrix, el){
         geometry = new THREE.CylinderGeometry( 0.1, 0.1, norm, 3, 1);
         material = new THREE.MeshBasicMaterial( {color: 0xffff00});
         cylinder = new THREE.Mesh(geometry, material);
-        angleXY = (Math.atan(tMatrix[0][i]/tMatrix[1][i])); //hacer módulo con 2PI
+        angleXY = (Math.atan(tMatrix[0][i]/tMatrix[1][i])); 
         angleXZ = (Math.atan(tMatrix[0][i]/tMatrix[2][i]));
 
-        //MIRAR SI CON VECTOR3 ME PUEDO AHORRAR TODA LA GEOMETRÍA
         //posX = cylinder.position.x;
         //console.log('posX',posX);
 
@@ -135,30 +118,14 @@ function drawVectors(tMatrix, el){
         cylinder.position.y = cylinder.position.y + (Math.cos(-angleXY)*norm/2);
         //cylinder.position.z = cylinder.position.z + (Math.cos(-angleXZ)*norm/2);
 
-        /*let d = Math.abs(cylinder.position.x) - Math.abs((Math.cos(-angleXZ)*norm/2)) - Math.abs(posX);
-
-        if(cylinder.position.x > 0){
-            cylinder.position.x = cylinder.position.x - d;
-        }
-        else if(cylinder.position.x < 0){
-            cylinder.position.x = cylinder.position.x + d;
-        }*/
-        
-        //save cylinder for changes when super-hands is used
-        //vectors.push(cylinder);
-        //console.log('vectors', vectors);
 
         //create entity for vector  
         entity = document.createElement('a-entity');
         entity.setObject3D('vector-' + i, cylinder);
         entity.setAttribute('id', 'vector' + i);
-
         vectors.push(cylinder);
-
         el.appendChild(entity);
         
-       
-
 
         //draw box
 
@@ -190,10 +157,6 @@ function drawVectors(tMatrix, el){
         entity.addEventListener('grab-end', function(event){
             boxColliderEventHandler(tMatrix, event.detail.target);
         });
-
-
-        
-
         
     }
 }
@@ -202,8 +165,6 @@ function drawVectors(tMatrix, el){
 if (typeof AFRAME === 'undefined') {
     throw new Error('Component attempted to register before AFRAME was available.');
 }
-
-
 
 /**
 * A-Charts component for A-Frame.
