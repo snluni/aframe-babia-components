@@ -9,6 +9,79 @@ const math = require("mathjs");
 let boxes = [];
 let vectors = [];
 
+function boxColliderEventHandler(matrix, entity){
+    //number of the box
+    let id = entity.getAttribute('id');
+    let aux = id.split('-');
+    let index = parseInt(aux[1]);
+    console.log('índice box', index);
+    //new position of the box
+    let position = entity.object3D.position;
+    
+    console.log('ángulo', position.angleTo((new THREE.Vector3(5,0,0)))*180/Math.PI);
+    //get the current angle of the vector
+    let oldAngleXY = (Math.atan(matrix[0][index]/matrix[1][index]));
+    oldAngleXY = oldAngleXY - Math.PI/2;
+
+    //modificate transformation matrix
+    matrix[0][index] = position.x;
+    matrix[1][index] = position.y;
+    matrix[2][index] = position.z;
+    console.log('new tMatrix', matrix);
+    //modificate vector
+    let vector = vectors[index];
+
+    console.log('position', position);
+
+    console.log('indice de la matrix', matrix[0][index]);
+    console.log('indice de la matrix', matrix[1][index]);
+    console.log('indice de la matrix', matrix[2][index]);
+
+    console.log('oldAngleXY', oldAngleXY * (180/Math.PI) + 90);
+    //return middle point of the vector to the origin
+    //vector.position.x = vector.position.x - Math.cos(oldAngleXY)*vector.geometry.parameters.height/2;
+    //vector.position.y = vector.position.y + Math.sin(oldAngleXY)*vector.geometry.parameters.height/2;
+
+    vector.position.x = 0;
+    vector.position.y = 0;
+    vector.rotation.z = 0;
+
+    //calculate the new norm and the new angle
+    let newNorm = math.norm([matrix[0][index], matrix[1][index],matrix[2][index]]);
+    let newAngleXY = (Math.atan(matrix[0][index]/matrix[1][index])); //hacer módulo con 2PI
+    //let newAngleXZ = (Math.atan(matrix[0][index]/matrix[2][index]));
+
+    
+    
+    //check quadrants
+    if(position.x > 0 && position.y > 0){
+        console.log('primer cuadrante');
+        newAngleXY = (Math.PI/2 - newAngleXY) -Math.PI/2;
+    }
+    else if(position.x < 0 && position.y > 0){
+        console.log('segundo cuadrante');
+        //newAngleXY = (newAngleXY + Math.PI/2) -Math.PI/2;
+        newAngleXY = (Math.PI/2 - newAngleXY) -Math.PI/2; 
+    }
+    else if(position.x < 0 && position.y < 0){
+        console.log('tercer cuadrante');
+        newAngleXY = (Math.PI/2 - newAngleXY + Math.PI) -Math.PI/2;
+    }
+    else if(position.x > 0 && position.y < 0){
+        console.log('cuarto cuadrante');
+        newAngleXY = (Math.PI/2 - newAngleXY + Math.PI) -Math.PI/2;
+    }
+
+    console.log('newAngleXY', newAngleXY * (180/Math.PI))
+
+    console.log('newAngleXY', newAngleXY * (180/Math.PI) + 90)
+    vector.geometry = new THREE.CylinderGeometry( 0.1, 0.1, newNorm, 3, 1);
+    vector.rotation.z = newAngleXY;
+    vector.position.x = vector.position.x + (Math.sin(-newAngleXY)*newNorm/2);
+    vector.position.y = vector.position.y + (Math.cos(-newAngleXY)*newNorm/2);
+
+}
+
 function drawVectors(tMatrix, el){
     //origin = {x:0,y:0,z:0}
     let geometry;
@@ -34,7 +107,7 @@ function drawVectors(tMatrix, el){
         angleXY = (Math.atan(tMatrix[0][i]/tMatrix[1][i])); //hacer módulo con 2PI
         angleXZ = (Math.atan(tMatrix[0][i]/tMatrix[2][i]));
 
-        
+        //MIRAR SI CON VECTOR3 ME PUEDO AHORRAR TODA LA GEOMETRÍA
         //posX = cylinder.position.x;
         //console.log('posX',posX);
 
@@ -42,9 +115,9 @@ function drawVectors(tMatrix, el){
         //angleXY = 0.925025;
         angleXY = angleXY - Math.PI/2;
         
+
         //angleXZ = Math.PI/4;
         //angleXZ = angleXZ - Math.PI;
-
 
         //rotate
         cylinder.rotation.z = angleXY;
@@ -71,20 +144,27 @@ function drawVectors(tMatrix, el){
             cylinder.position.x = cylinder.position.x + d;
         }*/
         
+        //save cylinder for changes when super-hands is used
+        //vectors.push(cylinder);
+        //console.log('vectors', vectors);
 
         //create entity for vector  
         entity = document.createElement('a-entity');
-        entity.setObject3D('vector ' + (i+1), cylinder);
-        entity.setAttribute('id', 'vector' + (i + 1));
+        entity.setObject3D('vector-' + i, cylinder);
+        entity.setAttribute('id', 'vector' + i);
+
+        vectors.push(cylinder);
+
         el.appendChild(entity);
         
+       
 
 
         //draw box
 
         //create entity for box
         entity = document.createElement('a-box');
-        box= entity.object3D;
+        box = entity.object3D;
 
 
         box.position.x = box.position.x - Math.sin(angleXY)*norm/2 + cylinder.position.x;
@@ -95,14 +175,26 @@ function drawVectors(tMatrix, el){
         
         box.scale.set(0.5, 0.5, 0.5);
         
+        boxes.push(box);
+        console.log('boxes', boxes);
         
-        
-        entity.setAttribute('id', 'box' + (i + 1));
+        entity.setAttribute('id', 'box-' + i);
         //boxes belong to collidable class
         entity.setAttribute('class', 'collidable');
         entity.setAttribute('grabbable', '');
+        
         el.appendChild(entity);
         console.log(entity);
+        //addEventListener
+        
+        entity.addEventListener('grab-end', function(event){
+            boxColliderEventHandler(tMatrix, event.detail.target);
+        });
+
+
+        
+
+        
     }
 }
 
@@ -253,6 +345,9 @@ AFRAME.registerComponent('babia-bubbles-plot', {
             dataToPrint.push({x: result[0][i], y: result[1][i], z: result[2][i]});
         }
 
+        //clear the previous vectors when the transform matrix is changed
+        vectors = [];
+        boxes = [];
         drawVectors(tMatrix, el);
 
         const animation = data.animation
