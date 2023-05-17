@@ -9,65 +9,43 @@ const math = require("mathjs");
 let boxes = [];
 let vectors = [];
 
-function boxColliderEventHandler(matrix, entity){
+function boxColliderEventHandler(matrix, boxEntity){
     //number of the box
-    let id = entity.getAttribute('id');
+    let id = boxEntity.getAttribute('id');
     let aux = id.split('-');
     let index = parseInt(aux[1]);
     console.log('índice box', index);
+
     //new position of the box
-    let position = entity.object3D.position;
+    let boxPosition = boxEntity.object3D.position;
 
-    //modificate transformation matrix
-    matrix[0][index] = position.x;
-    matrix[1][index] = position.y;
-    matrix[2][index] = position.z;
+    //modify transformation matrix
+    matrix[0][index] = boxPosition.x;
+    matrix[1][index] = boxPosition.y;
+    matrix[2][index] = boxPosition.z;
     console.log('new tMatrix', matrix);
-    //modificate vector
-    let vector = vectors[index];
 
-    console.log('position', position);
+    //modify vector
+    let entityVector = vectors[index];
+    //entityVector.object3D.remove();
 
-    console.log('indice de la matrix', matrix[0][index]);
-    console.log('indice de la matrix', matrix[1][index]);
-    console.log('indice de la matrix', matrix[2][index]);
+    //calculate the new norm 
+    let newNorm = math.norm([matrix[0][index], matrix[1][index], matrix[2][index]]);
 
-    vector.position.x = 0;
-    vector.position.y = 0;
-    vector.rotation.z = 0;
-
-    //calculate the new norm and the new angle
-    let newNorm = math.norm([matrix[0][index], matrix[1][index],matrix[2][index]]);
-    let newAngleXY = (Math.atan(matrix[0][index]/matrix[1][index])); //hacer módulo con 2PI
-    //let newAngleXZ = (Math.atan(matrix[0][index]/matrix[2][index]));
+    let geometry = new THREE.CylinderGeometry( 0.1, 0.1, newNorm, 3, 1);
+    let material = new THREE.MeshBasicMaterial( {color: 0xffff00});
+    let vector = new THREE.Mesh(geometry, material);
+    vector.position.set(0,0,0);
+    vector.geometry.rotateX(Math.PI*0.5);
+    vector.lookAt(boxPosition);    
 
     
-    
-    //check quadrants
-    if(position.x > 0 && position.y > 0){
-        console.log('primer cuadrante');
-        newAngleXY = (Math.PI/2 - newAngleXY) -Math.PI/2;
-    }
-    else if(position.x < 0 && position.y > 0){
-        console.log('segundo cuadrante');
-        //newAngleXY = (newAngleXY + Math.PI/2) -Math.PI/2;
-        newAngleXY = (Math.PI/2 - newAngleXY) -Math.PI/2; 
-    }
-    else if(position.x < 0 && position.y < 0){
-        console.log('tercer cuadrante');
-        newAngleXY = (Math.PI/2 - newAngleXY + Math.PI) -Math.PI/2;
-    }
-    else if(position.x > 0 && position.y < 0){
-        console.log('cuarto cuadrante');
-        newAngleXY = (Math.PI/2 - newAngleXY + Math.PI) -Math.PI/2;
-    }
 
-    console.log('newAngleXY', newAngleXY * (180/Math.PI) + 90)
-    vector.geometry = new THREE.CylinderGeometry( 0.1, 0.1, newNorm, 3, 1);
-    vector.rotation.z = newAngleXY;
-    vector.position.x = vector.position.x + (Math.sin(-newAngleXY)*newNorm/2);
-    vector.position.y = vector.position.y + (Math.cos(-newAngleXY)*newNorm/2);
+    vector.position.x = vector.position.x + matrix[0][index]/2;
+    vector.position.y = vector.position.y + matrix[1][index]/2;
+    vector.position.z = vector.position.z + matrix[2][index]/2;
 
+    entityVector.setObject3D('vector-' + index,vector);
 }
 
 function drawVectors(tMatrix, el){
@@ -75,57 +53,11 @@ function drawVectors(tMatrix, el){
     let geometry;
     let material;
     let box;
-    let cylinder;
     let norm;
-    let angleXZ;
-    let angleXY;
     let entity;
 
     let k = tMatrix[0].length
     for(let i=0; i < k; i++){
-        //draw cylinder
-        norm = math.norm([tMatrix[0][i], tMatrix[1][i],tMatrix[2][i]]);
-        geometry = new THREE.CylinderGeometry( 0.1, 0.1, norm, 3, 1);
-        material = new THREE.MeshBasicMaterial( {color: 0xffff00});
-        cylinder = new THREE.Mesh(geometry, material);
-        angleXY = (Math.atan(tMatrix[0][i]/tMatrix[1][i])); 
-        angleXZ = (Math.atan(tMatrix[0][i]/tMatrix[2][i]));
-
-        //posX = cylinder.position.x;
-        //console.log('posX',posX);
-
-        //rotate axis
-        //angleXY = 0.925025;
-        angleXY = angleXY - Math.PI/2;
-        
-
-        //angleXZ = Math.PI/4;
-        //angleXZ = angleXZ - Math.PI;
-
-        //rotate
-        cylinder.rotation.z = angleXY;
-        //cylinder.rotation.y = angleXZ;
-
-        let degreeXY = angleXY * (180/Math.PI) + 90;
-        let degreeXZ = angleXZ * (180/Math.PI);
-        console.log('degreeXY ', degreeXY);
-        console.log('degreeXZ ', degreeXZ);
-
-        
-        //translate
-        cylinder.position.x = cylinder.position.x + (Math.sin(-angleXY)*norm/2);
-        console.log(cylinder.position.x);
-        cylinder.position.y = cylinder.position.y + (Math.cos(-angleXY)*norm/2);
-        //cylinder.position.z = cylinder.position.z + (Math.cos(-angleXZ)*norm/2);
-
-
-        //create entity for vector  
-        entity = document.createElement('a-entity');
-        entity.setObject3D('vector-' + i, cylinder);
-        entity.setAttribute('id', 'vector' + i);
-        vectors.push(cylinder);
-        el.appendChild(entity);
-        
 
         //draw box
 
@@ -133,11 +65,7 @@ function drawVectors(tMatrix, el){
         entity = document.createElement('a-box');
         box = entity.object3D;
 
-
-        box.position.x = box.position.x - Math.sin(angleXY)*norm/2 + cylinder.position.x;
-        box.position.y = box.position.y + Math.cos(angleXY)*norm/2 + cylinder.position.y;
-        //box.position.z = box.position.z + Math.sin(angleXZ)*norm/2;
-        //box.position.x = box.position.x + Math.cos(angleXZ)*norm/2;
+        box.position.set(tMatrix[0][i], tMatrix[1][i], tMatrix[2][i]);
 
         
         box.scale.set(0.5, 0.5, 0.5);
@@ -152,11 +80,33 @@ function drawVectors(tMatrix, el){
         
         el.appendChild(entity);
         console.log(entity);
+
         //addEventListener
-        
         entity.addEventListener('grab-end', function(event){
-            boxColliderEventHandler(tMatrix, event.detail.target);
+            boxColliderEventHandler(tMatrix, event.detail.target, updateFunction);
         });
+
+
+        //draw vector
+        norm = math.norm([tMatrix[0][i], tMatrix[1][i], tMatrix[2][i]]);
+        geometry = new THREE.CylinderGeometry( 0.1, 0.1, norm, 3, 1);
+        material = new THREE.MeshBasicMaterial( {color: 0xffff00});
+        cylinder = new THREE.Mesh(geometry, material);
+        cylinder.position.set(0,0,0);
+        cylinder.geometry.rotateX(Math.PI*0.5);
+        cylinder.lookAt(box.position);
+        
+        //translate
+        cylinder.position.x = cylinder.position.x + tMatrix[0][i]/2;
+        cylinder.position.y = cylinder.position.y + tMatrix[1][i]/2;
+        cylinder.position.z = cylinder.position.z + tMatrix[2][i]/2;
+
+        //create entity for vector  
+        entity = document.createElement('a-entity');
+        entity.setObject3D('vector-' + i, cylinder);
+        entity.setAttribute('id', 'vector' + i);
+        vectors.push(entity);
+        el.appendChild(entity);
         
     }
 }
@@ -263,8 +213,8 @@ AFRAME.registerComponent('babia-bubbles-plot', {
         const el = this.el;
 
         //get data
-        const matrix = this.newData;
-        console.log("new data ", matrix);
+        const dataMatrix = this.newData;
+        console.log("new data ", dataMatrix);
 
 
         let tMatrix = data.transform_matrix;
@@ -273,7 +223,7 @@ AFRAME.registerComponent('babia-bubbles-plot', {
             //generate random default transform matrix
             let aux = [[],[],[]];
             for(let i = 0; i < aux.length; i++){
-                for(let j = 0; j < matrix.length; j++){
+                for(let j = 0; j < dataMatrix.length; j++){
                     aux[i].push(Math.floor(Math.random()*11));
                 }
                 
@@ -289,12 +239,12 @@ AFRAME.registerComponent('babia-bubbles-plot', {
         console.log(tMatrix);
 
         //throw an error if columns and rows do not match
-        if(tMatrix[0].length != matrix.length){
+        if(tMatrix[0].length != dataMatrix.length){
             throw new Error('Matrix (A) column number must match matrix (B) row number');
         }
         
         //multiply matrices
-        const result = math.multiply(tMatrix, matrix);;
+        const result = math.multiply(tMatrix, dataMatrix);
         
         console.log("Data babia-bubbles-plot:", result);
 
@@ -309,6 +259,7 @@ AFRAME.registerComponent('babia-bubbles-plot', {
         //clear the previous vectors when the transform matrix is changed
         vectors = [];
         boxes = [];
+
         drawVectors(tMatrix, el);
 
         const animation = data.animation
@@ -579,5 +530,3 @@ function showLegend(data, bubbleEntity, bubble, element) {
         element.removeChild(legend);
     });
 }
-
-
