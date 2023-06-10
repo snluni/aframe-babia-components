@@ -9,6 +9,9 @@ const math = require("mathjs");
 let boxes = [];
 let vectors = [];
 
+let dataMatrix;
+let tMatrixGlobal;
+
 function boxColliderEventHandler(matrix, boxEntity){
     //number of the box
     let id = boxEntity.getAttribute('id');
@@ -111,6 +114,28 @@ function drawVectors(tMatrix, el){
     }
 }
 
+function calculateMultiplication(tMatrix, dataMatrix){
+
+    //throw an error if columns and rows do not match
+    if(tMatrix[0].length != dataMatrix.length){
+        throw new Error('Matrix (A) column number must match matrix (B) row number');
+    }
+    
+    //multiply matrices
+    const result = math.multiply(tMatrix, dataMatrix);
+    
+    console.log("Data babia-bubbles-plot:", result);
+
+    //transform result to json
+    let dataToPrint = [];
+
+    //features= rows, examples= columns
+    for(let i=0; i < result[0].length; i++){
+        dataToPrint.push({x: result[0][i], y: result[1][i], z: result[2][i]});
+    }
+    return dataToPrint;
+}
+
 /* global AFRAME */
 if (typeof AFRAME === 'undefined') {
     throw new Error('Component attempted to register before AFRAME was available.');
@@ -208,59 +233,38 @@ AFRAME.registerComponent('babia-bubbles-plot', {
     * Update chart
     */
     updateChart: function () {
-
         const data = this.data;
         const el = this.el;
+        let tMatrix = tMatrixGlobal;
 
-        //get data
-        const dataMatrix = this.newData;
+        if(data.transform_matrix && !tMatrix){
+            tMatrix = JSON.parse(data.transform_matrix);
+        }
+
+        if(!dataMatrix){
+            dataMatrix = this.newData;
+        }
         console.log("new data ", dataMatrix);
 
-
-        let tMatrix = data.transform_matrix;
-        
-        if(!tMatrix){
-            //generate random default transform matrix
+        //generate random default transform matrix
+        if(!tMatrix){   
             let aux = [[],[],[]];
             for(let i = 0; i < aux.length; i++){
                 for(let j = 0; j < dataMatrix.length; j++){
                     aux[i].push(Math.floor(Math.random()*11));
                 }
-                
             }
             tMatrix = aux;
         }
-        else{
 
-            tMatrix = JSON.parse(tMatrix);
-        }
-
-        console.log("Transformation matrix:");
-        console.log(tMatrix);
-
-        //throw an error if columns and rows do not match
-        if(tMatrix[0].length != dataMatrix.length){
-            throw new Error('Matrix (A) column number must match matrix (B) row number');
-        }
-        
-        //multiply matrices
-        const result = math.multiply(tMatrix, dataMatrix);
-        
-        console.log("Data babia-bubbles-plot:", result);
-
-        //transform result to json
-        let dataToPrint = [];
-
-        //features= rows, examples= columns
-        for(let i=0; i < result[0].length; i++){
-            dataToPrint.push({x: result[0][i], y: result[1][i], z: result[2][i]});
-        }
+        const dataToPrint = calculateMultiplication(tMatrix, dataMatrix);
 
         //clear the previous vectors when the transform matrix is changed
         vectors = [];
         boxes = [];
 
         drawVectors(tMatrix, el);
+        
 
         const animation = data.animation
         const palette = data.palette
