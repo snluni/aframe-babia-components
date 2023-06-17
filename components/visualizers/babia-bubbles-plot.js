@@ -17,7 +17,6 @@ function boxColliderEventHandler(matrix, boxEntity, component){
     let id = boxEntity.getAttribute('id');
     let aux = id.split('-');
     let index = parseInt(aux[1]);
-    console.log('índice box', index);
 
     //new position of the box
     let boxPosition = boxEntity.object3D.position;
@@ -28,7 +27,8 @@ function boxColliderEventHandler(matrix, boxEntity, component){
     matrix[2][index] = boxPosition.z;
     console.log('new tMatrix', matrix);
 
-    tMatrixGlobal = matrix;
+    tMatrix = matrix;
+    
     //modify vector
     let entityVector = vectors[index];
     //entityVector.object3D.remove();
