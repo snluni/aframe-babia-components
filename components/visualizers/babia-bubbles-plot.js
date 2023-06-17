@@ -8,11 +8,11 @@ const math = require("mathjs");
 //save vectors 
 let boxes = [];
 let vectors = [];
-
+let points =[];
 let dataMatrix;
-let tMatrixGlobal;
+let tMatrix;
 
-function boxColliderEventHandler(matrix, boxEntity){
+function boxColliderEventHandler(matrix, boxEntity, component){
     //number of the box
     let id = boxEntity.getAttribute('id');
     let aux = id.split('-');
@@ -28,6 +28,7 @@ function boxColliderEventHandler(matrix, boxEntity){
     matrix[2][index] = boxPosition.z;
     console.log('new tMatrix', matrix);
 
+    tMatrixGlobal = matrix;
     //modify vector
     let entityVector = vectors[index];
     //entityVector.object3D.remove();
@@ -42,16 +43,16 @@ function boxColliderEventHandler(matrix, boxEntity){
     vector.geometry.rotateX(Math.PI*0.5);
     vector.lookAt(boxPosition);    
 
-    
-
     vector.position.x = vector.position.x + matrix[0][index]/2;
     vector.position.y = vector.position.y + matrix[1][index]/2;
     vector.position.z = vector.position.z + matrix[2][index]/2;
 
     entityVector.setObject3D('vector-' + index,vector);
+
+    component.updateChart();
 }
 
-function drawVectors(tMatrix, el){
+function drawVectors(tMatrix, el, component){
     //origin = {x:0,y:0,z:0}
     let geometry;
     let material;
@@ -86,7 +87,7 @@ function drawVectors(tMatrix, el){
 
         //addEventListener
         entity.addEventListener('grab-end', function(event){
-            boxColliderEventHandler(tMatrix, event.detail.target, updateFunction);
+            boxColliderEventHandler(tMatrix, event.detail.target, component);
         });
 
 
@@ -235,36 +236,40 @@ AFRAME.registerComponent('babia-bubbles-plot', {
     updateChart: function () {
         const data = this.data;
         const el = this.el;
-        let tMatrix = tMatrixGlobal;
+        if(!tMatrix || !dataMatrix){
 
-        if(data.transform_matrix && !tMatrix){
-            tMatrix = JSON.parse(data.transform_matrix);
-        }
-
-        if(!dataMatrix){
-            dataMatrix = this.newData;
-        }
-        console.log("new data ", dataMatrix);
-
-        //generate random default transform matrix
-        if(!tMatrix){   
-            let aux = [[],[],[]];
-            for(let i = 0; i < aux.length; i++){
-                for(let j = 0; j < dataMatrix.length; j++){
-                    aux[i].push(Math.floor(Math.random()*11));
-                }
+            if(data.transform_matrix){
+                tMatrix = JSON.parse(data.transform_matrix);
             }
-            tMatrix = aux;
+    
+            dataMatrix = this.newData;
+
+            console.log("new data ", dataMatrix);
+
+            //generate random default transform matrix
+            if(!tMatrix){   
+                let aux = [[],[],[]];
+                for(let i = 0; i < aux.length; i++){
+                    for(let j = 0; j < dataMatrix.length; j++){
+                        aux[i].push(Math.floor(Math.random()*11));
+                    }
+                }
+                tMatrix = aux;
+            }
+
+            //clear the previous vectors when the transform matrix is changed
+            vectors = [];
+            boxes = [];
+
+            drawVectors(tMatrix, el, this);
+
+            //create chart
+            this.chartEl = document.createElement('a-entity');
+            this.chartEl.classList.add('babiaxrChart');
+            el.appendChild(this.chartEl);
         }
 
         const dataToPrint = calculateMultiplication(tMatrix, dataMatrix);
-
-        //clear the previous vectors when the transform matrix is changed
-        vectors = [];
-        boxes = [];
-
-        drawVectors(tMatrix, el);
-        
 
         const animation = data.animation
         const palette = data.palette
@@ -303,10 +308,6 @@ AFRAME.registerComponent('babia-bubbles-plot', {
             radiusMax = maxRadius
         }
         radius_scale = radiusMax / maxRadius
-          
-        this.chartEl = document.createElement('a-entity');
-        this.chartEl.classList.add('babiaxrChart')
-        el.appendChild(this.chartEl)
     
         if (scale) {
             maxX = maxRadius / scale;
@@ -315,8 +316,14 @@ AFRAME.registerComponent('babia-bubbles-plot', {
             maxX = maxRadius * radius_scale;
             maxZ = maxRadius * radius_scale;
         }
-    
-        
+
+        //if there were previous points, delete them
+        if(points){
+            for(let point of points){
+                point.parentNode.removeChild(point);
+            }
+            points = [];
+        }
 
         for (let bubble of dataToPrint) {
             let xLabel = bubble[data.x_axis];
@@ -363,14 +370,19 @@ AFRAME.registerComponent('babia-bubbles-plot', {
                 zTicks.push(stepZ)
             }
     
+
             if (stepX > maxX){
                 maxX = stepX
             }
             if (stepZ > maxZ){
                 maxZ = stepZ
             }
-    
+
             let bubbleEntity = generateBubble(height, radius, colorId, palette, stepX, stepZ, animation, scale, proportion, radius_scale, data.form, data.size);
+            
+            //save point
+            points.push(bubbleEntity);
+
             bubbleEntity.classList.add("babiaxraycasterclass")
             this.chartEl.appendChild(bubbleEntity);
             
